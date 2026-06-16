@@ -73,6 +73,47 @@ function classifyQuality(srtTime, actualLastLift) {
   return (srt >= windowStart && srt <= actual) ? 'GOOD' : 'NOT QUALITY';
 }
 
+// Read all predict form values from DOM into S.form without re-rendering
+function syncForm() {
+  const ids = ['vessel','cmph','f1','f2','f3','f4','f5','f6','f7','f8'];
+  ids.forEach(id => {
+    const el = document.getElementById('f-' + id);
+    if (!el) return;
+    const val = el.value;
+    if (id === 'vessel') S.form.vessel = val.toUpperCase();
+    else if (id === 'cmph') S.form.cmph = val;
+    else S.form[id] = +val || 0;
+  });
+}
+
+// Update only the hint labels under each field without re-rendering inputs
+function updateHints() {
+  syncForm();
+  const cmph = parseFloat(S.form.cmph) || 0;
+  const qc = QC_DB.find(q => q.qc === S.form.qc);
+  const qcSpeed = qc ? qc.speed : 50;
+  const base = cmph > 0 ? 60 / cmph : 0;
+
+  const fieldMap = { f1:1.0, f2:0.5, f3:1.9157, f4:1.5326, f5:3.0651, f6:1.9157 };
+  Object.entries(fieldMap).forEach(([id, factor]) => {
+    const hint = document.getElementById('hint-' + id);
+    if (!hint) return;
+    const qty = parseFloat(S.form[id]) || 0;
+    hint.textContent = (cmph && qty) ? (qty * base * factor).toFixed(1) + ' min' : '';
+  });
+
+  // gantry hint
+  const hg = document.getElementById('hint-f7');
+  if (hg) {
+    const bays = parseFloat(S.form.f7) || 0;
+    hg.textContent = (qcSpeed && bays) ? (bays * 17.5 / qcSpeed).toFixed(1) + ' min travel' : '';
+  }
+
+  // cmph hint
+  const hc = document.getElementById('hint-cmph');
+  if (hc) hc.textContent = cmph > 0 ? (60/cmph).toFixed(2) + ' min per move' : '';
+}
+
 function R() {
   const root = document.getElementById('root');
   if (!root) return;
@@ -137,7 +178,7 @@ function renderPredict(tb) {
     <div class="g2" style="margin-bottom:9px">
       <div class="fi">
         <label>Vessel name</label>
-        <div class="iw"><input id="f-vessel" value="${f.vessel}" placeholder="e.g. EVER GIVEN" style="text-transform:uppercase" oninput="S.form.vessel=this.value.toUpperCase()"></div>
+        <div class="iw"><input id="f-vessel" value="${f.vessel}" placeholder="e.g. EVER GIVEN" style="text-transform:uppercase"></div>
       </div>
       <div class="fi">
         <label>QC number</label>
@@ -151,8 +192,8 @@ function renderPredict(tb) {
     <div class="g2">
       <div class="fi">
         <label>CMPH — crane moves per hour</label>
-        <div class="iw"><input id="f-cmph" type="number" value="${f.cmph}" placeholder="e.g. 28" min="1" max="60" oninput="S.form.cmph=this.value;renderTab()"></div>
-        ${cmph > 0 ? `<div style="font-size:10px;color:#6b6b67;margin-top:2px">${(60/cmph).toFixed(2)} min per move</div>` : ''}
+        <div class="iw"><input id="f-cmph" type="number" value="${f.cmph}" placeholder="e.g. 28" min="1" max="60" oninput="updateHints()"></div>
+        <div id="hint-cmph" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${cmph > 0 ? (60/cmph).toFixed(2)+' min per move' : ''}</div>
       </div>
       <div class="fi">
         <label>QC travel speed (m/min)</label>
@@ -160,45 +201,47 @@ function renderPredict(tb) {
       </div>
     </div>
   </div>
+
   <div class="card">
     <div class="ctitle">Container workload</div>
     <div class="g2" style="margin-bottom:9px">
       <div class="fi"><label>Normal container</label>
-        <div class="iw"><input type="number" value="${f.f1||0}" min="0" oninput="S.form.f1=+this.value;renderTab()"><div class="utag">Unit</div></div>
-        <div style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f1',1.0)}</div>
+        <div class="iw"><input id="f-f1" type="number" value="${f.f1||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div id="hint-f1" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f1',1.0)}</div>
       </div>
       <div class="fi"><label>Twin container</label>
-        <div class="iw"><input type="number" value="${f.f2||0}" min="0" oninput="S.form.f2=+this.value;renderTab()"><div class="utag">Unit</div></div>
-        <div style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f2',0.5)}</div>
+        <div class="iw"><input id="f-f2" type="number" value="${f.f2||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div id="hint-f2" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f2',0.5)}</div>
       </div>
       <div class="fi"><label>Gearbox</label>
-        <div class="iw"><input type="number" value="${f.f3||0}" min="0" oninput="S.form.f3=+this.value;renderTab()"><div class="utag">Unit</div></div>
-        <div style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f3',1.9157)}</div>
+        <div class="iw"><input id="f-f3" type="number" value="${f.f3||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div id="hint-f3" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f3',1.9157)}</div>
       </div>
       <div class="fi"><label>Hatch cover</label>
-        <div class="iw"><input type="number" value="${f.f4||0}" min="0" oninput="S.form.f4=+this.value;renderTab()"><div class="utag">Unit</div></div>
-        <div style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f4',1.5326)}</div>
+        <div class="iw"><input id="f-f4" type="number" value="${f.f4||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div id="hint-f4" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f4',1.5326)}</div>
       </div>
       <div class="fi"><label>OOG</label>
-        <div class="iw"><input type="number" value="${f.f5||0}" min="0" oninput="S.form.f5=+this.value;renderTab()"><div class="utag">Unit</div></div>
-        <div style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f5',3.0651)}</div>
+        <div class="iw"><input id="f-f5" type="number" value="${f.f5||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div id="hint-f5" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f5',3.0651)}</div>
       </div>
       <div class="fi"><label>Open top</label>
-        <div class="iw"><input type="number" value="${f.f6||0}" min="0" oninput="S.form.f6=+this.value;renderTab()"><div class="utag">Unit</div></div>
-        <div style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f6',1.9157)}</div>
+        <div class="iw"><input id="f-f6" type="number" value="${f.f6||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div id="hint-f6" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f6',1.9157)}</div>
       </div>
     </div>
     <div class="g2">
       <div class="fi"><label>Gantry movement</label>
-        <div class="iw"><input type="number" value="${f.f7||0}" min="0" oninput="S.form.f7=+this.value;renderTab()"><div class="utag">Bay</div></div>
-        <div style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${(qcSpeed&&f.f7>0)?((+f.f7*17.5/qcSpeed).toFixed(1)+' min travel'):''}</div>
+        <div class="iw"><input id="f-f7" type="number" value="${f.f7||0}" min="0" oninput="updateHints()"><div class="utag">Bay</div></div>
+        <div id="hint-f7" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${(qcSpeed&&f.f7>0)?((+f.f7*17.5/qcSpeed).toFixed(1)+' min travel'):''}</div>
       </div>
       <div class="fi"><label>Breakdown</label>
-        <div class="iw"><input type="number" value="${f.f8||0}" min="0" oninput="S.form.f8=+this.value;renderTab()"><div class="utag">Min</div></div>
+        <div class="iw"><input id="f-f8" type="number" value="${f.f8||0}" min="0"><div class="utag">Min</div></div>
         <div style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">Added to total operation time</div>
       </div>
     </div>
   </div>
+
   <div class="card">
     <button class="btn" onclick="doCalc()">Calculate prediction</button>
     ${S.result ? renderResult() : ''}
@@ -404,13 +447,17 @@ window.setTab = function(t) {
   if (t === 'records' || t === 'dashboard') loadRecords();
 };
 
-window.onQC = function(v) { S.form.qc = v; renderTab(); };
+window.onQC = function(v) {
+  syncForm();
+  S.form.qc = v;
+  renderTab();
+};
+
 window.toggleExp = function(id) { S.expandId = S.expandId===id ? null : id; renderTab(); };
 
 window.doCalc = function() {
+  syncForm();
   const f = S.form;
-  f.vessel = document.getElementById('f-vessel')?.value.trim().toUpperCase() || f.vessel;
-  f.cmph = document.getElementById('f-cmph')?.value || f.cmph;
   if (!f.vessel) { alert('Please enter the vessel name.'); return; }
   if (!f.qc) { alert('Please select a QC number.'); return; }
   if (!f.cmph || +f.cmph <= 0) { alert('Please enter CMPH.'); return; }
@@ -425,6 +472,7 @@ window.doCalc = function() {
 };
 
 window.savePhase1 = async function() {
+  syncForm();
   const rem = document.getElementById('p1-rem')?.value.trim() || '';
   const f = S.form; const r = S.result;
   const qc = QC_DB.find(q => q.qc === f.qc);
@@ -471,7 +519,6 @@ window.savePhase2 = async function(id) {
 };
 
 // ── BOOT ──────────────────────────────────────────────
-// Wait for Supabase SDK to be ready, then start the app
 (function boot() {
   if (window.supabase && window.sb) {
     if (S.operator) {
