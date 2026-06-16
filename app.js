@@ -439,4 +439,6 @@ window.savePhase2 = async function(id) {
   loadRecords();
 };
 
-if (S.operator) loadRecords(); else R();
+document.addEventListener('DOMContentLoaded', function() {
+  if (S.operator) loadRecords(); else R();
+});
