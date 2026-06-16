@@ -265,10 +265,9 @@ function renderResult() {
     </div>
     <span class="bigtime" style="color:#185FA5">${r.lastLiftStr}</span>
   </div>
-  <div class="hrow">
+ <div class="hrow">
     <div>
-      <div style="font-size:11px;color:#6b6b67">Call pilot at (SRT)</div>
-      <div style="font-size:10px;color:#6b6b67;margin-top:2px">Predicted last lift − 15 min</div>
+      <div style="font-size:11px;color:#6b6b67">Recommended SRT</div>
     </div>
     <span class="bigtime" style="color:#0F6E56">${r.srtStr}</span>
   </div>
@@ -465,8 +464,7 @@ window.doCalc = function() {
   const res = calcAll(f, +f.cmph, qc ? qc.speed : 50);
   const now = new Date();
   const lastLift = addMin(now, res.totalMin);
-  const srt = addMin(lastLift, -15);
-  S.result = { ...res, lastLiftStr: toHM(lastLift), srtStr: toHM(srt) };
+  S.result = { ...res, lastLiftStr: toHM(lastLift), srtStr: toHM(lastLift) };
   renderTab();
   setTimeout(() => { const el = document.querySelector('.hrow'); if (el) el.scrollIntoView({ behavior:'smooth', block:'nearest' }); }, 100);
 };
