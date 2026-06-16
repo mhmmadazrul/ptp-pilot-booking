@@ -440,5 +440,23 @@ window.savePhase2 = async function(id) {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-  if (S.operator) loadRecords(); else R();
+  if (typeof supabase === 'undefined' || !window.sb) {
+    let tries = 0;
+    const wait = setInterval(function() {
+      tries++;
+      if (window.sb) {
+        clearInterval(wait);
+        if (S.operator) loadRecords(); else R();
+      } else if (tries > 30) {
+        clearInterval(wait);
+        document.getElementById('root').innerHTML =
+          '<div style="padding:2rem;font-family:sans-serif;text-align:center">' +
+          '<p style="color:#666;margin-bottom:1rem">Connection timeout. Please refresh.</p>' +
+          '<button onclick="location.reload()" style="padding:8px 16px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer">Refresh</button>' +
+          '</div>';
+      }
+    }, 200);
+  } else {
+    if (S.operator) loadRecords(); else R();
+  }
 });
