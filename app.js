@@ -23,22 +23,38 @@ const parseT = s => { const [h,m] = s.split(':'); const d = new Date(); d.setHou
 
 async function loadRecords() {
   S.loading = true; renderTab();
-  const { data, error } = await sb.from('pilot_booking_records').select('*').order('created_at', { ascending: false });
+  try {
+    const { data, error } = await window.sb.from('pilot_booking_records').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    S.records = data || [];
+  } catch(e) {
+    console.error('Load error:', e);
+    S.records = [];
+  }
   S.loading = false;
-  if (!error && data) S.records = data;
   renderTab();
 }
 
 async function dbInsert(rec) {
-  const { error } = await sb.from('pilot_booking_records').insert([rec]);
-  if (error) { alert('Save failed: ' + error.message); return false; }
-  return true;
+  try {
+    const { error } = await window.sb.from('pilot_booking_records').insert([rec]);
+    if (error) throw error;
+    return true;
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+    return false;
+  }
 }
 
 async function dbUpdate(id, updates) {
-  const { error } = await sb.from('pilot_booking_records').update(updates).eq('id', id);
-  if (error) { alert('Update failed: ' + error.message); return false; }
-  return true;
+  try {
+    const { error } = await window.sb.from('pilot_booking_records').update(updates).eq('id', id);
+    if (error) throw error;
+    return true;
+  } catch(e) {
+    alert('Update failed: ' + e.message);
+    return false;
+  }
 }
 
 function calcAll(f, cmph, qcSpeed) {
@@ -59,13 +75,14 @@ function classifyQuality(srtTime, actualLastLift) {
 
 function R() {
   const root = document.getElementById('root');
+  if (!root) return;
   root.innerHTML = '';
   if (!S.operator) { renderLogin(root); return; }
   renderApp(root);
 }
 
 function renderLogin(root) {
-  root.innerHTML = `<div class="login-wrap">
+  root.innerHTML = `<div style="max-width:320px;margin:3rem auto">
   <div class="card" style="text-align:center">
     <i class="ti ti-anchor" style="font-size:32px;color:#185FA5"></i>
     <div style="font-weight:500;font-size:15px;margin:10px 0 4px">PTP Pilot Booking System</div>
@@ -143,7 +160,6 @@ function renderPredict(tb) {
       </div>
     </div>
   </div>
-
   <div class="card">
     <div class="ctitle">Container workload</div>
     <div class="g2" style="margin-bottom:9px">
@@ -183,7 +199,6 @@ function renderPredict(tb) {
       </div>
     </div>
   </div>
-
   <div class="card">
     <button class="btn" onclick="doCalc()">Calculate prediction</button>
     ${S.result ? renderResult() : ''}
@@ -316,7 +331,7 @@ function renderDashboard(tb) {
       <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#639922;display:inline-block"></span>GOOD (${good.length})</span>
       <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#E24B4A;display:inline-block"></span>NOT QUALITY (${notQ.length})</span>
     </div>
-    <div style="position:relative;width:100%;height:170px"><canvas id="ch-q" role="img" aria-label="SRT compliance doughnut chart">${good.length} GOOD, ${notQ.length} NOT QUALITY.</canvas></div>
+    <div style="position:relative;width:100%;height:170px"><canvas id="ch-q" role="img" aria-label="SRT compliance chart">${good.length} GOOD, ${notQ.length} NOT QUALITY.</canvas></div>
   </div>
   <div class="card">
     <div class="ctitle">Last lift deviation — last 12 records</div>
@@ -324,7 +339,7 @@ function renderDashboard(tb) {
       <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#378ADD;display:inline-block"></span>Within 30 min</span>
       <span style="display:flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:2px;background:#E24B4A;display:inline-block"></span>Over 30 min</span>
     </div>
-    <div style="position:relative;width:100%;height:200px"><canvas id="ch-d" role="img" aria-label="Deviation bar chart">Deviation in minutes per vessel.</canvas></div>
+    <div style="position:relative;width:100%;height:200px"><canvas id="ch-d" role="img" aria-label="Deviation chart">Deviation in minutes per vessel.</canvas></div>
   </div>
   <div class="card">
     <div class="ctitle">Recent completed records</div>
@@ -370,11 +385,25 @@ function renderDashboard(tb) {
 window.doLogin = function() {
   const v = document.getElementById('op-inp')?.value.trim().toUpperCase();
   if (!v) { alert('Please enter your operator ID.'); return; }
-  S.operator = v; localStorage.setItem('ptp_op', v);
-  R(); loadRecords();
+  S.operator = v;
+  localStorage.setItem('ptp_op', v);
+  loadRecords().then(() => R());
 };
-window.doLogout = function() { S.operator = ''; S.records = []; R(); };
-window.setTab = function(t) { S.tab = t; S.result = null; if (t === 'records' || t === 'dashboard') loadRecords(); else R(); };
+
+window.doLogout = function() {
+  S.operator = '';
+  S.records = [];
+  localStorage.removeItem('ptp_op');
+  R();
+};
+
+window.setTab = function(t) {
+  S.tab = t;
+  S.result = null;
+  R();
+  if (t === 'records' || t === 'dashboard') loadRecords();
+};
+
 window.onQC = function(v) { S.form.qc = v; renderTab(); };
 window.toggleExp = function(id) { S.expandId = S.expandId===id ? null : id; renderTab(); };
 
@@ -415,7 +444,8 @@ window.savePhase1 = async function() {
   S.form = { vessel:'', qc:'', cmph:'', f1:0, f2:0, f3:0, f4:0, f5:0, f6:0, f7:0, f8:0 };
   alert('Saved: ' + rec.vessel_name + '\nCall pilot at: ' + rec.suggested_srt);
   S.tab = 'records'; S.recTab = 'pending';
-  loadRecords();
+  await loadRecords();
+  R();
 };
 
 window.savePhase2 = async function(id) {
@@ -436,27 +466,20 @@ window.savePhase2 = async function(id) {
   });
   if (!ok) return;
   S.expandId = null;
-  loadRecords();
+  await loadRecords();
+  renderTab();
 };
 
-document.addEventListener('DOMContentLoaded', function() {
-  if (typeof supabase === 'undefined' || !window.sb) {
-    let tries = 0;
-    const wait = setInterval(function() {
-      tries++;
-      if (window.sb) {
-        clearInterval(wait);
-        if (S.operator) loadRecords(); else R();
-      } else if (tries > 30) {
-        clearInterval(wait);
-        document.getElementById('root').innerHTML =
-          '<div style="padding:2rem;font-family:sans-serif;text-align:center">' +
-          '<p style="color:#666;margin-bottom:1rem">Connection timeout. Please refresh.</p>' +
-          '<button onclick="location.reload()" style="padding:8px 16px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer">Refresh</button>' +
-          '</div>';
-      }
-    }, 200);
+// ── BOOT ──────────────────────────────────────────────
+// Wait for Supabase SDK to be ready, then start the app
+(function boot() {
+  if (window.supabase && window.sb) {
+    if (S.operator) {
+      loadRecords().then(() => R());
+    } else {
+      R();
+    }
   } else {
-    if (S.operator) loadRecords(); else R();
+    setTimeout(boot, 100);
   }
-});
+})();
