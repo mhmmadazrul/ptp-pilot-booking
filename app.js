@@ -1,10 +1,19 @@
-const QC_DB = (() => {
-  const models = ['Liebherr LHM 600','Konecranes RTG 655','ZPMC STS G4','Gottwald HMK 7608','Liebherr STS 3045'];
-  const d = [];
-  for (let i = 1; i <= 120; i++)
-    d.push({ qc: 'QC' + String(i).padStart(3,'0'), model: models[i % 5], speed: +(45 + Math.random() * 10).toFixed(1) });
-  return d;
-})();
+let QC_DB = [];
+
+async function loadQCDatabase() {
+  try {
+    const { data, error } = await window.sb.from('qc_database').select('*').order('qc_number');
+    if (error) throw error;
+    QC_DB = (data || []).map(r => ({
+      qc: r.qc_number,
+      model: r.model,
+      speed: r.travel_speed_mpm
+    }));
+  } catch(e) {
+    console.error('Failed to load QC database:', e);
+    QC_DB = [];
+  }
+}
 
 const F = { f1:1.0, f2:0.5, f3:1.9157, f4:1.5326, f5:3.0651, f6:1.9157 };
 
@@ -519,11 +528,13 @@ window.savePhase2 = async function(id) {
 // ── BOOT ──────────────────────────────────────────────
 (function boot() {
   if (window.supabase && window.sb) {
-    if (S.operator) {
-      loadRecords().then(() => R());
-    } else {
-      R();
-    }
+    loadQCDatabase().then(() => {
+      if (S.operator) {
+        loadRecords().then(() => R());
+      } else {
+        R();
+      }
+    });
   } else {
     setTimeout(boot, 100);
   }
