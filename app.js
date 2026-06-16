@@ -138,8 +138,8 @@ function renderLogin(root) {
     <div style="font-weight:500;font-size:15px;margin:10px 0 4px">PTP Pilot Booking System</div>
     <div style="font-size:12px;color:#6b6b67;margin-bottom:20px">Port of Tanjung Pelepas</div>
     <div class="fi" style="margin-bottom:12px">
-      <label>Operator ID</label>
-      <div class="iw"><input id="op-inp" placeholder="e.g. OPS01" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <label>Employee ID</label>
+      <div class="iw"><input id="op-inp" placeholder="e.g. 011xx0" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')doLogin()"></div>
     </div>
     <button class="btn" onclick="doLogin()">Enter system</button>
   </div></div>`;
