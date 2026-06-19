@@ -397,9 +397,9 @@ function renderExpanded(r) {
   </div>` : `
   <div class="ep-title" style="margin-top:10px">Phase 2 — enter actual data</div>
   <div class="g3" style="margin-bottom:9px">
-    <div class="fi"><label>Actual last lift</label><div class="iw"><input type="time" id="a-ll"></div></div>
-    <div class="fi"><label>Pilot onboard</label><div class="iw"><input type="time" id="a-po"></div></div>
-    <div class="fi"><label>Actual SRT</label><div class="iw"><input type="time" id="a-srt"></div></div>
+    <div class="fi"><label>Actual last lift</label><div class="iw"><input type="time" id="a-ll" lang="en-GB" step="60"></div></div>
+    <div class="fi"><label>Pilot onboard</label><div class="iw"><input type="time" id="a-po" lang="en-GB" step="60"></div></div>
+    <div class="fi"><label>Actual SRT</label><div class="iw"><input type="time" id="a-srt" lang="en-GB" step="60"></div></div>
   </div>
   <div class="fi" style="margin-bottom:9px">
     <label>Remarks <span style="font-size:10px;color:#6b6b67">(mandatory)</span></label>
