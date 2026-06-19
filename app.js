@@ -397,9 +397,27 @@ function renderExpanded(r) {
   </div>` : `
   <div class="ep-title" style="margin-top:10px">Phase 2 — enter actual data</div>
   <div class="g3" style="margin-bottom:9px">
-    <div class="fi"><label>Actual last lift</label><div class="iw"><input type="time" id="a-ll" lang="en-GB" step="60"></div></div>
-    <div class="fi"><label>Pilot onboard</label><div class="iw"><input type="time" id="a-po" lang="en-GB" step="60"></div></div>
-    <div class="fi"><label>Actual SRT</label><div class="iw"><input type="time" id="a-srt" lang="en-GB" step="60"></div></div>
+    <div class="fi"><label>Actual last lift</label>
+      <div class="iw" style="gap:0">
+        <input type="number" id="a-ll-h" placeholder="HH" min="0" max="23" maxlength="2" style="text-align:center;flex:1" oninput="hhmmAutoAdvance(this,'a-ll-m')">
+        <span style="padding:0 2px;color:#6b6b67">:</span>
+        <input type="number" id="a-ll-m" placeholder="MM" min="0" max="59" maxlength="2" style="text-align:center;flex:1">
+      </div>
+    </div>
+    <div class="fi"><label>Pilot onboard</label>
+      <div class="iw" style="gap:0">
+        <input type="number" id="a-po-h" placeholder="HH" min="0" max="23" maxlength="2" style="text-align:center;flex:1" oninput="hhmmAutoAdvance(this,'a-po-m')">
+        <span style="padding:0 2px;color:#6b6b67">:</span>
+        <input type="number" id="a-po-m" placeholder="MM" min="0" max="59" maxlength="2" style="text-align:center;flex:1">
+      </div>
+    </div>
+    <div class="fi"><label>Actual SRT</label>
+      <div class="iw" style="gap:0">
+        <input type="number" id="a-srt-h" placeholder="HH" min="0" max="23" maxlength="2" style="text-align:center;flex:1" oninput="hhmmAutoAdvance(this,'a-srt-m')">
+        <span style="padding:0 2px;color:#6b6b67">:</span>
+        <input type="number" id="a-srt-m" placeholder="MM" min="0" max="59" maxlength="2" style="text-align:center;flex:1">
+      </div>
+    </div>
   </div>
   <div class="fi" style="margin-bottom:9px">
     <label>Remarks <span style="font-size:10px;color:#6b6b67">(mandatory)</span></label>
@@ -548,6 +566,15 @@ window.onQC = function(v) {
 
 window.toggleExp = function(id) { S.expandId = S.expandId===id ? null : id; renderTab(); };
 
+window.hhmmAutoAdvance = function(hourInput, minuteId) {
+  if (hourInput.value.length >= 2) {
+    const v = Math.min(23, Math.max(0, +hourInput.value));
+    hourInput.value = v;
+    const minEl = document.getElementById(minuteId);
+    if (minEl) minEl.focus();
+  }
+};
+
 window.doCalc = function() {
   syncForm();
   const f = S.form;
@@ -589,9 +616,17 @@ window.savePhase1 = async function() {
 };
 
 window.savePhase2 = async function(id) {
-  const ll = document.getElementById('a-ll')?.value;
-  const po = document.getElementById('a-po')?.value;
-  const srt = document.getElementById('a-srt')?.value;
+  const readHM = (hId, mId) => {
+    const h = document.getElementById(hId)?.value;
+    const m = document.getElementById(mId)?.value;
+    if (h === '' || h === null || m === '' || m === null) return null;
+    const hh = String(Math.min(23, Math.max(0, +h))).padStart(2,'0');
+    const mm = String(Math.min(59, Math.max(0, +m))).padStart(2,'0');
+    return hh + ':' + mm;
+  };
+  const ll = readHM('a-ll-h', 'a-ll-m');
+  const po = readHM('a-po-h', 'a-po-m');
+  const srt = readHM('a-srt-h', 'a-srt-m');
   const rem = document.getElementById('a-rem')?.value.trim();
   if (!ll || !po || !srt) { alert('All three time fields are mandatory.'); return; }
   if (!rem) { alert('Remarks are mandatory.'); return; }
