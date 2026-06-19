@@ -22,13 +22,47 @@ let S = {
   operator: localStorage.getItem('ptp_op') || '',
   records: [], loading: false,
   form: { vessel:'', qc:'', cmph:'', f1:0, f2:0, f3:0, f4:0, f5:0, f6:0, f7:0, f8:0 },
-  result: null, expandId: null
+  result: null, expandId: null,
+  weekFilter: 'all'
 };
 
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
 const addMin = (d, m) => new Date(d.getTime() + m * 60000);
 const toHM = d => d.toTimeString().slice(0,5);
 const parseT = s => { const [h,m] = s.split(':'); const d = new Date(); d.setHours(+h,+m,0,0); return d; };
+
+// ISO workweek helpers (Monday-start)
+function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+function getISOWeekYear(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  return d.getUTCFullYear();
+}
+function getWeekKey(date) {
+  return getISOWeekYear(date) + '-W' + String(getISOWeek(date)).padStart(2,'0');
+}
+function getWeekRange(weekKey) {
+  const [yr, wk] = weekKey.split('-W').map(Number);
+  const simple = new Date(Date.UTC(yr, 0, 1 + (wk - 1) * 7));
+  const dow = simple.getUTCDay() || 7;
+  const monday = new Date(simple);
+  monday.setUTCDate(simple.getUTCDate() - dow + 1);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  return { monday, sunday };
+}
+function formatWeekLabel(weekKey) {
+  const { monday, sunday } = getWeekRange(weekKey);
+  const fmt = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  return weekKey + '  (' + fmt(monday) + ' – ' + fmt(sunday) + ')';
+}
 
 async function loadRecords() {
   S.loading = true; renderTab();
@@ -222,7 +256,7 @@ function renderPredict(tb) {
         <div class="iw"><input id="f-f1" type="number" value="${f.f1||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
         <div id="hint-f1" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f1',1.0)}</div>
       </div>
-      <div class="fi"><label>Twin lift</label>
+      <div class="fi"><label>Twin container</label>
         <div class="iw"><input id="f-f2" type="number" value="${f.f2||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
         <div id="hint-f2" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f2',0.5)}</div>
       </div>
@@ -366,15 +400,32 @@ function renderExpanded(r) {
 }
 
 function renderDashboard(tb) {
-  const done = S.records.filter(r => r.actual_last_lift_time);
+  // Build available week options from all records (not just completed)
+  const weekKeys = Array.from(new Set(S.records.map(r => getWeekKey(new Date(r.created_at))))).sort().reverse();
+
+  // Apply week filter
+  const baseRecords = S.weekFilter === 'all'
+    ? S.records
+    : S.records.filter(r => getWeekKey(new Date(r.created_at)) === S.weekFilter);
+
+  const done = baseRecords.filter(r => r.actual_last_lift_time);
   const good = done.filter(r => r.booking_quality === 'GOOD');
   const notQ = done.filter(r => r.booking_quality === 'NOT QUALITY');
   const avgDev = done.length ? Math.round(done.reduce((s,r) => s + Math.abs(r.deviation_minutes), 0) / done.length) : 0;
   const srtRate = done.length ? Math.round(good.length / done.length * 100) : 0;
 
   tb.innerHTML = `
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <div class="fi" style="flex:1;max-width:320px">
+      <label>Workweek (Mon–Sun)</label>
+      <div class="iw"><select id="week-filter" onchange="S.weekFilter=this.value;renderTab()">
+        <option value="all" ${S.weekFilter==='all'?'selected':''}>All time</option>
+        ${weekKeys.map(wk => `<option value="${wk}" ${S.weekFilter===wk?'selected':''}>${formatWeekLabel(wk)}</option>`).join('')}
+      </select></div>
+    </div>
+  </div>
   <div class="g4" style="margin-bottom:10px">
-    <div class="metric"><div class="mlabel">Total predictions</div><div class="mval">${S.records.length}</div><div class="msub">all time</div></div>
+    <div class="metric"><div class="mlabel">Total predictions</div><div class="mval">${baseRecords.length}</div><div class="msub">${S.weekFilter==='all'?'all time':'selected week'}</div></div>
     <div class="metric"><div class="mlabel">Validated</div><div class="mval">${done.length}</div><div class="msub">with actual data</div></div>
     <div class="metric"><div class="mlabel">SRT compliance</div><div class="mval" style="color:${srtRate>=80?'#0F6E56':srtRate>=60?'#854F0B':'#A32D2D'}">${srtRate}%</div><div class="msub">${good.length} GOOD · ${notQ.length} NOT QUALITY</div></div>
     <div class="metric"><div class="mlabel">Avg LL deviation</div><div class="mval">${avgDev} min</div><div class="msub">predicted vs actual</div></div>
