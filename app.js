@@ -194,7 +194,7 @@ function renderPredict(tb) {
         <div class="iw"><input id="f-vessel" value="${f.vessel}" placeholder="e.g. EVER GIVEN" style="text-transform:uppercase"></div>
       </div>
       <div class="fi">
-        <label>QC number</label>
+        <label>Long QC number</label>
         <div class="iw"><select id="f-qc" onchange="onQC(this.value)">
           <option value="">— select —</option>
           ${QC_DB.map(q => `<option value="${q.qc}" ${f.qc===q.qc?'selected':''}>${q.qc}</option>`).join('')}
@@ -471,7 +471,7 @@ window.doCalc = function() {
   syncForm();
   const f = S.form;
   if (!f.vessel) { alert('Please enter the vessel name.'); return; }
-  if (!f.qc) { alert('Please select a QC number.'); return; }
+  if (!f.qc) { alert('Please select long QC number.'); return; }
   if (!f.cmph || +f.cmph <= 0) { alert('Please enter CMPH.'); return; }
   const qc = QC_DB.find(q => q.qc === f.qc);
   const res = calcAll(f, +f.cmph, qc ? qc.speed : 50);
