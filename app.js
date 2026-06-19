@@ -398,13 +398,16 @@ function renderDashboard(tb) {
   </div>
   <div class="card">
     <div class="ctitle">Recent completed records</div>
-    <table>
+    <div style="overflow-x:auto">
+    <table style="min-width:900px">
       <thead><tr>
-        <th style="width:12%">Date</th><th style="width:20%">Vessel</th><th style="width:10%">QC</th>
-        <th style="width:12%">Pred LL</th><th style="width:12%">Actual LL</th>
-        <th style="width:11%">SRT</th><th style="width:9%">Dev</th><th>Quality</th>
+        <th style="width:10%">Date</th><th style="width:17%">Vessel</th><th style="width:9%">QC</th>
+        <th style="width:10%">Pred LL</th><th style="width:10%">Actual LL</th>
+        <th style="width:9%">SRT</th><th style="width:9%">Dev</th><th style="width:13%">Quality</th><th style="width:9%">SRT Gap</th>
       </tr></thead>
-      <tbody>${done.slice(0,10).map(r => `<tr>
+      <tbody>${done.slice(0,10).map(r => {
+        const srtGap = Math.round((parseT(r.actual_last_lift_time) - parseT(r.suggested_srt)) / 60000);
+        return `<tr>
         <td style="font-family:monospace">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</td>
         <td>${r.vessel_name}</td>
         <td style="font-family:monospace">${r.qc_number}</td>
@@ -413,8 +416,11 @@ function renderDashboard(tb) {
         <td style="font-family:monospace">${r.suggested_srt}</td>
         <td style="font-family:monospace;color:${Math.abs(r.deviation_minutes)<=30?'#0F6E56':'#A32D2D'}">${r.deviation_minutes>0?'+':''}${r.deviation_minutes}</td>
         <td><span class="badge ${r.booking_quality==='GOOD'?'bg':'bb'}">${r.booking_quality}</span></td>
-      </tr>`).join('')}</tbody>
+        <td style="font-family:monospace;color:${r.booking_quality==='GOOD'?'#0F6E56':'#A32D2D'}">${srtGap>0?'+':''}${srtGap} min</td>
+      </tr>`;
+      }).join('')}</tbody>
     </table>
+    </div>
   </div>`}`;
 
   if (done.length >= 1) {
