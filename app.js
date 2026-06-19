@@ -23,7 +23,7 @@ let S = {
   records: [], loading: false,
   form: { vessel:'', qc:'', cmph:'', f1:0, f2:0, f3:0, f4:0, f5:0, f6:0, f7:0, f8:0 },
   result: null, expandId: null,
-  weekFilter: 'all'
+  weekFilter: 'all', monthFilter: 'all'
 };
 
 const genId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -62,6 +62,16 @@ function formatWeekLabel(weekKey) {
   const { monday, sunday } = getWeekRange(weekKey);
   const fmt = d => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
   return weekKey + '  (' + fmt(monday) + ' – ' + fmt(sunday) + ')';
+}
+
+// Month helpers
+function getMonthKey(date) {
+  return date.getFullYear() + '-M' + String(date.getMonth() + 1).padStart(2,'0');
+}
+function formatMonthLabel(monthKey) {
+  const [yr, mo] = monthKey.split('-M').map(Number);
+  const d = new Date(yr, mo - 1, 1);
+  return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 }
 
 async function loadRecords() {
@@ -400,32 +410,45 @@ function renderExpanded(r) {
 }
 
 function renderDashboard(tb) {
-  // Build available week options from all records (not just completed)
+  // Build available week/month options from all records (not just completed)
   const weekKeys = Array.from(new Set(S.records.map(r => getWeekKey(new Date(r.created_at))))).sort().reverse();
+  const monthKeys = Array.from(new Set(S.records.map(r => getMonthKey(new Date(r.created_at))))).sort().reverse();
 
-  // Apply week filter
-  const baseRecords = S.weekFilter === 'all'
-    ? S.records
-    : S.records.filter(r => getWeekKey(new Date(r.created_at)) === S.weekFilter);
+  // Apply month filter, then week filter (both can combine)
+  let baseRecords = S.records;
+  if (S.monthFilter !== 'all') {
+    baseRecords = baseRecords.filter(r => getMonthKey(new Date(r.created_at)) === S.monthFilter);
+  }
+  if (S.weekFilter !== 'all') {
+    baseRecords = baseRecords.filter(r => getWeekKey(new Date(r.created_at)) === S.weekFilter);
+  }
 
   const done = baseRecords.filter(r => r.actual_last_lift_time);
   const good = done.filter(r => r.booking_quality === 'GOOD');
   const notQ = done.filter(r => r.booking_quality === 'NOT QUALITY');
   const avgDev = done.length ? Math.round(done.reduce((s,r) => s + Math.abs(r.deviation_minutes), 0) / done.length) : 0;
   const srtRate = done.length ? Math.round(good.length / done.length * 100) : 0;
+  const isFiltered = S.weekFilter !== 'all' || S.monthFilter !== 'all';
 
   tb.innerHTML = `
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-    <div class="fi" style="flex:1;max-width:320px">
+  <div class="g2" style="margin-bottom:10px">
+    <div class="fi">
+      <label>Month</label>
+      <div class="iw"><select id="month-filter" onchange="S.monthFilter=this.value;renderTab()">
+        <option value="all" ${S.monthFilter==='all'?'selected':''}>All months</option>
+        ${monthKeys.map(mk => `<option value="${mk}" ${S.monthFilter===mk?'selected':''}>${formatMonthLabel(mk)}</option>`).join('')}
+      </select></div>
+    </div>
+    <div class="fi">
       <label>Workweek (Mon–Sun)</label>
       <div class="iw"><select id="week-filter" onchange="S.weekFilter=this.value;renderTab()">
-        <option value="all" ${S.weekFilter==='all'?'selected':''}>All time</option>
+        <option value="all" ${S.weekFilter==='all'?'selected':''}>All weeks</option>
         ${weekKeys.map(wk => `<option value="${wk}" ${S.weekFilter===wk?'selected':''}>${formatWeekLabel(wk)}</option>`).join('')}
       </select></div>
     </div>
   </div>
   <div class="g4" style="margin-bottom:10px">
-    <div class="metric"><div class="mlabel">Total predictions</div><div class="mval">${baseRecords.length}</div><div class="msub">${S.weekFilter==='all'?'all time':'selected week'}</div></div>
+    <div class="metric"><div class="mlabel">Total predictions</div><div class="mval">${baseRecords.length}</div><div class="msub">${isFiltered?'filtered':'all time'}</div></div>
     <div class="metric"><div class="mlabel">Validated</div><div class="mval">${done.length}</div><div class="msub">with actual data</div></div>
     <div class="metric"><div class="mlabel">SRT compliance</div><div class="mval" style="color:${srtRate>=80?'#0F6E56':srtRate>=60?'#854F0B':'#A32D2D'}">${srtRate}%</div><div class="msub">${good.length} GOOD · ${notQ.length} NOT QUALITY</div></div>
     <div class="metric"><div class="mlabel">Avg LL deviation</div><div class="mval">${avgDev} min</div><div class="msub">predicted vs actual</div></div>
