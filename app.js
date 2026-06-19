@@ -143,7 +143,7 @@ function renderLogin(root) {
     <div style="font-size:12px;color:#6b6b67;margin-bottom:20px">Port of Tanjung Pelepas</div>
     <div class="fi" style="margin-bottom:12px">
       <label>Employee ID</label>
-      <div class="iw"><input id="op-inp" placeholder="e.g. 011XX1" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="iw"><input id="op-inp" placeholder="e.g. 0XXXX0" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')doLogin()"></div>
     </div>
     <button class="btn" onclick="doLogin()">Enter system</button>
   </div></div>`;
