@@ -142,8 +142,8 @@ function renderLogin(root) {
     <div style="font-weight:500;font-size:15px;margin:10px 0 4px">PTP Pilot Booking System</div>
     <div style="font-size:12px;color:#6b6b67;margin-bottom:20px">Port of Tanjung Pelepas</div>
     <div class="fi" style="margin-bottom:12px">
-      <label>Operator ID</label>
-      <div class="iw"><input id="op-inp" placeholder="e.g. OPS01" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <label>Employee ID</label>
+      <div class="iw"><input id="op-inp" placeholder="e.g. 011XX1" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')doLogin()"></div>
     </div>
     <button class="btn" onclick="doLogin()">Enter system</button>
   </div></div>`;
@@ -400,11 +400,12 @@ function renderDashboard(tb) {
     <div class="ctitle">Recent completed records</div>
     <table>
       <thead><tr>
-        <th style="width:25%">Vessel</th><th style="width:12%">QC</th>
-        <th style="width:13%">Pred LL</th><th style="width:13%">Actual LL</th>
-        <th style="width:12%">SRT</th><th style="width:10%">Dev</th><th>Quality</th>
+        <th style="width:12%">Date</th><th style="width:20%">Vessel</th><th style="width:10%">QC</th>
+        <th style="width:12%">Pred LL</th><th style="width:12%">Actual LL</th>
+        <th style="width:11%">SRT</th><th style="width:9%">Dev</th><th>Quality</th>
       </tr></thead>
       <tbody>${done.slice(0,10).map(r => `<tr>
+        <td style="font-family:monospace">${new Date(r.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'})}</td>
         <td>${r.vessel_name}</td>
         <td style="font-family:monospace">${r.qc_number}</td>
         <td style="font-family:monospace">${r.predicted_last_lift_time}</td>
@@ -471,7 +472,7 @@ window.doCalc = function() {
   syncForm();
   const f = S.form;
   if (!f.vessel) { alert('Please enter the vessel name.'); return; }
-  if (!f.qc) { alert('Please select long QC number.'); return; }
+  if (!f.qc) { alert('Please select Long QC number.'); return; }
   if (!f.cmph || +f.cmph <= 0) { alert('Please enter CMPH.'); return; }
   const qc = QC_DB.find(q => q.qc === f.qc);
   const res = calcAll(f, +f.cmph, qc ? qc.speed : 50);
