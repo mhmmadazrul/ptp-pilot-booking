@@ -75,11 +75,15 @@ function calcAll(f, cmph, qcSpeed) {
   return { containerMin, gantryMin, bufferMin, totalMin: containerMin + gantryMin + bufferMin };
 }
 
+// QUALITY RULE:
+// SRT is the reference point. Actual last lift must occur within 15 minutes BEFORE SRT (or exactly at SRT).
+// GOOD:  SRT - 15 min <= actual_last_lift <= SRT
+// NOT QUALITY: actual_last_lift is more than 15 min before SRT, or after SRT
 function classifyQuality(srtTime, actualLastLift) {
   const srt = parseT(srtTime);
   const actual = parseT(actualLastLift);
-  const windowStart = addMin(actual, -15);
-  return (srt >= windowStart && srt <= actual) ? 'GOOD' : 'NOT QUALITY';
+  const windowStart = addMin(srt, -15);
+  return (actual >= windowStart && actual <= srt) ? 'GOOD' : 'NOT QUALITY';
 }
 
 // Read all predict form values from DOM into S.form without re-rendering
@@ -138,8 +142,8 @@ function renderLogin(root) {
     <div style="font-weight:500;font-size:15px;margin:10px 0 4px">PTP Pilot Booking System</div>
     <div style="font-size:12px;color:#6b6b67;margin-bottom:20px">Port of Tanjung Pelepas</div>
     <div class="fi" style="margin-bottom:12px">
-      <label>Employee ID</label>
-      <div class="iw"><input id="op-inp" placeholder="e.g. 011xx0" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <label>Operator ID</label>
+      <div class="iw"><input id="op-inp" placeholder="e.g. OPS01" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')doLogin()"></div>
     </div>
     <button class="btn" onclick="doLogin()">Enter system</button>
   </div></div>`;
@@ -274,13 +278,13 @@ function renderResult() {
     </div>
     <span class="bigtime" style="color:#185FA5">${r.lastLiftStr}</span>
   </div>
- <div class="hrow">
+  <div class="hrow">
     <div>
       <div style="font-size:11px;color:#6b6b67">Recommended SRT</div>
     </div>
     <span class="bigtime" style="color:#0F6E56">${r.srtStr}</span>
   </div>
-  <div class="info-box">SRT is GOOD only if it falls within 15 min before actual last lift. Too early or too late = NOT QUALITY.</div>
+  <div class="info-box">Quality SRT booking: actual last lift should occur within 15 min before SRT (up to SRT itself). Earlier than 15 min before, or after SRT = NOT QUALITY.</div>
   <div class="sep"></div>
   <div class="fi" style="margin-bottom:9px">
     <label>Remarks <span style="font-size:10px;opacity:.6">(optional)</span></label>
@@ -342,7 +346,7 @@ function renderExpanded(r) {
     <div class="rrow"><span>Actual last lift</span><span class="rval">${r.actual_last_lift_time}</span></div>
     <div class="rrow"><span>Pilot onboard</span><span class="rval">${r.actual_pilot_onboard_time}</span></div>
     <div class="rrow"><span>Actual SRT</span><span class="rval">${r.actual_srt_time}</span></div>
-    <div class="rrow"><span>SRT compliance window</span><span class="rval">${r.srt_window_start} – ${r.actual_last_lift_time}</span></div>
+    <div class="rrow"><span>SRT compliance window</span><span class="rval">${r.srt_window_start} – ${r.srt_window_end}</span></div>
     <div class="rrow"><span>Suggested SRT was</span><span class="rval" style="color:${r.booking_quality==='GOOD'?'#0F6E56':'#A32D2D'}">${r.suggested_srt} → ${r.booking_quality}</span></div>
     <div class="rrow"><span>Deviation (pred vs actual LL)</span><span class="rval" style="color:${Math.abs(r.deviation_minutes)<=30?'#0F6E56':'#A32D2D'}">${r.deviation_minutes>0?'+':''}${r.deviation_minutes} min</span></div>
     <div class="rrow"><span>Remarks</span><span style="font-size:11px;color:#6b6b67;max-width:55%;text-align:right">${r.actual_remarks}</span></div>
@@ -497,7 +501,7 @@ window.savePhase1 = async function() {
   if (!ok) return;
   S.result = null;
   S.form = { vessel:'', qc:'', cmph:'', f1:0, f2:0, f3:0, f4:0, f5:0, f6:0, f7:0, f8:0 };
-  alert('Saved: ' + rec.vessel_name + '\nCall pilot at: ' + rec.suggested_srt);
+  alert('Saved: ' + rec.vessel_name + '\nRecommended SRT: ' + rec.suggested_srt);
   S.tab = 'records'; S.recTab = 'pending';
   await loadRecords();
   R();
@@ -511,12 +515,12 @@ window.savePhase2 = async function(id) {
   if (!ll || !po || !srt) { alert('All three time fields are mandatory.'); return; }
   if (!rem) { alert('Remarks are mandatory.'); return; }
   const rec = S.records.find(r => r.id === id);
-  const srtWindowStart = toHM(addMin(parseT(ll), -15));
+  const srtWindowStart = toHM(addMin(parseT(rec.suggested_srt), -15));
   const quality = classifyQuality(rec.suggested_srt, ll);
   const deviation = Math.round((parseT(ll) - parseT(rec.predicted_last_lift_time)) / 60000);
   const ok = await dbUpdate(id, {
     actual_last_lift_time: ll, actual_pilot_onboard_time: po, actual_srt_time: srt,
-    srt_window_start: srtWindowStart, booking_quality: quality,
+    srt_window_start: srtWindowStart, srt_window_end: rec.suggested_srt, booking_quality: quality,
     deviation_minutes: deviation, actual_remarks: rem
   });
   if (!ok) return;
