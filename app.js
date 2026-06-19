@@ -263,37 +263,37 @@ function renderPredict(tb) {
     <div class="ctitle">Container workload</div>
     <div class="g2" style="margin-bottom:9px">
       <div class="fi"><label>Normal container</label>
-        <div class="iw"><input id="f-f1" type="number" value="${f.f1||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div class="iw"><input id="f-f1" type="number" value="${f.f1||''}" placeholder="Quantity" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
         <div id="hint-f1" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f1',1.0)}</div>
       </div>
       <div class="fi"><label>Twin container</label>
-        <div class="iw"><input id="f-f2" type="number" value="${f.f2||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div class="iw"><input id="f-f2" type="number" value="${f.f2||''}" placeholder="Quantity" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
         <div id="hint-f2" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f2',0.5)}</div>
       </div>
       <div class="fi"><label>Gearbox</label>
-        <div class="iw"><input id="f-f3" type="number" value="${f.f3||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div class="iw"><input id="f-f3" type="number" value="${f.f3||''}" placeholder="Quantity" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
         <div id="hint-f3" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f3',1.9157)}</div>
       </div>
       <div class="fi"><label>Hatch cover</label>
-        <div class="iw"><input id="f-f4" type="number" value="${f.f4||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div class="iw"><input id="f-f4" type="number" value="${f.f4||''}" placeholder="Quantity" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
         <div id="hint-f4" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f4',1.5326)}</div>
       </div>
       <div class="fi"><label>OOG</label>
-        <div class="iw"><input id="f-f5" type="number" value="${f.f5||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div class="iw"><input id="f-f5" type="number" value="${f.f5||''}" placeholder="Quantity" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
         <div id="hint-f5" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f5',3.0651)}</div>
       </div>
       <div class="fi"><label>Open top</label>
-        <div class="iw"><input id="f-f6" type="number" value="${f.f6||0}" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
+        <div class="iw"><input id="f-f6" type="number" value="${f.f6||''}" placeholder="Quantity" min="0" oninput="updateHints()"><div class="utag">Unit</div></div>
         <div id="hint-f6" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${mini('f6',1.9157)}</div>
       </div>
     </div>
     <div class="g2">
       <div class="fi"><label>Gantry movement</label>
-        <div class="iw"><input id="f-f7" type="number" value="${f.f7||0}" min="0" oninput="updateHints()"><div class="utag">Bay</div></div>
+        <div class="iw"><input id="f-f7" type="number" value="${f.f7||''}" placeholder="Quantity" min="0" oninput="updateHints()"><div class="utag">Bay</div></div>
         <div id="hint-f7" style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">${(qcSpeed&&f.f7>0)?((+f.f7*17.5/qcSpeed).toFixed(1)+' min travel'):''}</div>
       </div>
       <div class="fi"><label>Breakdown</label>
-        <div class="iw"><input id="f-f8" type="number" value="${f.f8||0}" min="0"><div class="utag">Min</div></div>
+        <div class="iw"><input id="f-f8" type="number" value="${f.f8||''}" placeholder="Quantity" min="0"><div class="utag">Min</div></div>
         <div style="font-size:10px;color:#6b6b67;margin-top:2px;min-height:14px">Added to total operation time</div>
       </div>
     </div>
